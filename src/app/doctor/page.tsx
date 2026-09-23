@@ -41,19 +41,68 @@ export default async function DoctorPage() {
     .eq("assigned_doctor_id", doctor?.id);
 
   // Appointments
-  const { data: appointments } = await supabase
-    .from("appointments")
-    .select(`
-      *,
-      patients (
-        profile_id,
-        profiles (
-          full_name
-        )
-      )
-    `)
-    .eq("doctor_id", doctor?.id)
-    .order("appointment_date", { ascending: true });
+    const { data: rawAppointments } = await supabase
+  .from("appointments")
+  .select("*")
+  .eq("doctor_id", doctor?.id)
+  .order("appointment_date", { ascending: true });
+
+let appointments = rawAppointments || [];
+
+if (appointments.length > 0) {
+  const patientIds = [
+    ...new Set(
+      appointments
+        .map((appointment) => appointment.patient_id)
+        .filter(Boolean)
+    ),
+  ];
+
+  const { data: patientRows } = await supabase
+    .from("patients")
+    .select("id, profile_id")
+    .in("id", patientIds);
+
+  const profileIds = [
+    ...new Set(
+      (patientRows || [])
+        .map((patient) => patient.profile_id)
+        .filter(Boolean)
+    ),
+  ];
+
+  const { data: profileRows } = await supabase
+    .from("profiles")
+    .select("id, full_name")
+    .in("id", profileIds);
+
+  const profileMap = new Map(
+    (profileRows || []).map((profile) => [
+      profile.id,
+      profile.full_name,
+    ])
+  );
+
+  const patientMap = new Map(
+    (patientRows || []).map((patient) => [
+      patient.id,
+      {
+        profile_id: patient.profile_id,
+        full_name: patient.profile_id
+          ? profileMap.get(patient.profile_id) || "Unknown Patient"
+          : "Unknown Patient",
+      },
+    ])
+  );
+
+  appointments = appointments.map((appointment) => ({
+    ...appointment,
+    patients: patientMap.get(appointment.patient_id) || {
+      profile_id: null,
+      full_name: "Unknown Patient",
+    },
+  }));
+}
 
   const today = new Date().toISOString().split("T")[0];
 
