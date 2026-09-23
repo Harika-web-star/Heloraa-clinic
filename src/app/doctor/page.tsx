@@ -229,7 +229,7 @@ export default async function DoctorPage() {
                   </p>
 
                   <h1 className="mt-1 text-3xl font-semibold tracking-tight">
-                    Welcome, Dr. {profile?.full_name}
+                    Welcome, {profile.full_name}
                   </h1>
 
                   <p className="mt-2 text-sm text-slate-500">

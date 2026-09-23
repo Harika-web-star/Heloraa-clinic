@@ -37,9 +37,12 @@ export default function SignupPage() {
           password,
           options: {
             data: {
-              full_name: fullName.trim(),
-              role,
-            },
+  full_name:
+    role === "doctor"
+      ? `Dr. ${fullName.trim().replace(/^Dr\.?\s*/i, "")}`
+      : fullName.trim(),
+  role,
+},
           },
         });
 
