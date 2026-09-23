@@ -74,7 +74,7 @@ export default function PatientAppointmentsPage() {
 
     try {
       const response = await fetch(
-        "/api/ai/appointment",
+        "/api/ai/appointments",
         {
           method: "POST",
           headers: {
@@ -165,7 +165,6 @@ export default function PatientAppointmentsPage() {
                     key={doctor.id}
                     value={doctor.id}
                   >
-                    Dr.{" "}
                     {doctor.profiles?.full_name} —{" "}
                     {doctor.specialization}
                   </option>
