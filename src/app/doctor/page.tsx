@@ -1,8 +1,13 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { createClient as createAdminClient } from "@supabase/supabase-js";
 import LogoutButton from "@/components/LogoutButton";
 
 export default async function DoctorPage() {
+  // =====================================================
+  // AUTHENTICATED SUPABASE CLIENT
+  // =====================================================
+
   const supabase = await createClient();
 
   const {
@@ -13,22 +18,55 @@ export default async function DoctorPage() {
     return null;
   }
 
-  // Doctor
-  const { data: doctor } = await supabase
+  // =====================================================
+  // SERVICE ROLE CLIENT
+  // Used only on the server to reliably read doctor data
+  // without browser RLS relationship issues.
+  // =====================================================
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl || !serviceRoleKey) {
+    throw new Error("Supabase server configuration is missing.");
+  }
+
+  const adminSupabase = createAdminClient(
+    supabaseUrl,
+    serviceRoleKey,
+    {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+    }
+  );
+
+  // =====================================================
+  // DOCTOR
+  // =====================================================
+
+  const { data: doctor } = await adminSupabase
     .from("doctors")
     .select("*")
     .eq("profile_id", user.id)
     .single();
 
-  // Profile
-  const { data: profile } = await supabase
+  // =====================================================
+  // PROFILE
+  // =====================================================
+
+  const { data: profile } = await adminSupabase
     .from("profiles")
     .select("*")
     .eq("id", user.id)
     .single();
 
-  // Assigned patients
-  const { data: patients } = await supabase
+  // =====================================================
+  // ASSIGNED PATIENTS
+  // =====================================================
+
+  const { data: patients } = await adminSupabase
     .from("patients")
     .select(`
       *,
@@ -40,83 +78,108 @@ export default async function DoctorPage() {
     `)
     .eq("assigned_doctor_id", doctor?.id);
 
-  // Appointments
-    const { data: rawAppointments } = await supabase
-  .from("appointments")
-  .select("*")
-  .eq("doctor_id", doctor?.id)
-  .order("appointment_date", { ascending: true });
+  // =====================================================
+  // APPOINTMENTS
+  // =====================================================
 
-let appointments = rawAppointments || [];
+  const { data: rawAppointments } = await adminSupabase
+    .from("appointments")
+    .select("*")
+    .eq("doctor_id", doctor?.id)
+    .order("appointment_date", {
+      ascending: true,
+    })
+    .order("appointment_time", {
+      ascending: true,
+    });
 
-if (appointments.length > 0) {
-  const patientIds = [
-    ...new Set(
-      appointments
-        .map((appointment) => appointment.patient_id)
-        .filter(Boolean)
-    ),
-  ];
+  let appointments = rawAppointments || [];
 
-  const { data: patientRows } = await supabase
-    .from("patients")
-    .select("id, profile_id")
-    .in("id", patientIds);
+  // =====================================================
+  // ATTACH PATIENT NAMES TO APPOINTMENTS
+  // =====================================================
 
-  const profileIds = [
-    ...new Set(
-      (patientRows || [])
-        .map((patient) => patient.profile_id)
-        .filter(Boolean)
-    ),
-  ];
+  if (appointments.length > 0) {
+    const patientIds = [
+      ...new Set(
+        appointments
+          .map((appointment) => appointment.patient_id)
+          .filter(Boolean)
+      ),
+    ];
 
-  const { data: profileRows } = await supabase
-    .from("profiles")
-    .select("id, full_name")
-    .in("id", profileIds);
+    const { data: patientRows } = await adminSupabase
+      .from("patients")
+      .select("id, profile_id")
+      .in("id", patientIds);
 
-  const profileMap = new Map(
-    (profileRows || []).map((profile) => [
-      profile.id,
-      profile.full_name,
-    ])
-  );
+    const profileIds = [
+      ...new Set(
+        (patientRows || [])
+          .map((patient) => patient.profile_id)
+          .filter(Boolean)
+      ),
+    ];
 
-  const patientMap = new Map(
-    (patientRows || []).map((patient) => [
-      patient.id,
-      {
-        profile_id: patient.profile_id,
-        full_name: patient.profile_id
-          ? profileMap.get(patient.profile_id) || "Unknown Patient"
-          : "Unknown Patient",
-      },
-    ])
-  );
+    const { data: profileRows } = await adminSupabase
+      .from("profiles")
+      .select("id, full_name")
+      .in("id", profileIds);
 
-  appointments = appointments.map((appointment) => ({
-    ...appointment,
-    patients: patientMap.get(appointment.patient_id) || {
-      profile_id: null,
-      full_name: "Unknown Patient",
-    },
-  }));
-}
+    const profileMap = new Map(
+      (profileRows || []).map((profile) => [
+        profile.id,
+        profile.full_name,
+      ])
+    );
 
-  const today = new Date().toISOString().split("T")[0];
+    const patientMap = new Map(
+      (patientRows || []).map((patient) => [
+        patient.id,
+        {
+          profile_id: patient.profile_id,
+          full_name: patient.profile_id
+            ? profileMap.get(patient.profile_id) ||
+              "Unknown Patient"
+            : "Unknown Patient",
+        },
+      ])
+    );
+
+    appointments = appointments.map((appointment) => ({
+      ...appointment,
+      patientInfo:
+        patientMap.get(appointment.patient_id) || {
+          profile_id: null,
+          full_name: "Unknown Patient",
+        },
+    }));
+  }
+
+  // =====================================================
+  // DATE / STATS
+  // =====================================================
+
+  const today = new Date()
+    .toISOString()
+    .split("T")[0];
 
   const todayAppointments =
-    appointments?.filter(
+    appointments.filter(
       (appointment) =>
         appointment.appointment_date === today
-    ) || [];
+    );
 
   const pendingAppointments =
-    appointments?.filter(
+    appointments.filter(
       (appointment) =>
-        appointment.status?.toLowerCase() === "pending"
-    ) || [];
+        appointment.status?.toLowerCase() ===
+        "pending"
+    );
+
+  // =====================================================
+  // UI
+  // =====================================================
 
   return (
     <main className="min-h-screen bg-[#F8FAFC] text-[#0A0D14]">
@@ -131,8 +194,6 @@ if (appointments.length > 0) {
 
           <div className="sticky top-0 flex h-screen flex-col">
 
-            {/* Logo */}
-
             <div className="border-b border-slate-200 px-6 py-6">
 
               <h1 className="text-xl font-semibold">
@@ -144,8 +205,6 @@ if (appointments.length > 0) {
               </p>
 
             </div>
-
-            {/* Navigation */}
 
             <nav className="flex-1 px-4 py-6">
 
@@ -207,14 +266,12 @@ if (appointments.length > 0) {
 
             </nav>
 
-            {/* Doctor info */}
-
             <div className="border-t border-slate-200 p-4">
 
               <div className="rounded-xl bg-slate-50 p-4">
 
                 <p className="text-sm font-semibold">
-                  Dr. {profile?.full_name}
+                  {profile?.full_name}
                 </p>
 
                 <p className="mt-1 text-xs text-slate-500">
@@ -239,8 +296,6 @@ if (appointments.length > 0) {
 
         <div className="min-w-0 flex-1">
 
-          {/* Top Bar */}
-
           <header className="sticky top-0 z-10 border-b border-slate-200 bg-white/95 backdrop-blur">
 
             <div className="flex h-16 items-center justify-between px-6 lg:px-8">
@@ -254,7 +309,9 @@ if (appointments.length > 0) {
               </div>
 
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#0A0D14] text-sm font-semibold text-white">
-                {profile?.full_name?.charAt(0).toUpperCase()}
+                {profile?.full_name
+                  ?.charAt(0)
+                  .toUpperCase()}
               </div>
 
             </div>
@@ -278,7 +335,7 @@ if (appointments.length > 0) {
                   </p>
 
                   <h1 className="mt-1 text-3xl font-semibold tracking-tight">
-                    Welcome, {profile.full_name}
+                    Welcome, {profile?.full_name}
                   </h1>
 
                   <p className="mt-2 text-sm text-slate-500">
@@ -324,7 +381,7 @@ if (appointments.length > 0) {
                   </p>
 
                   <p className="mt-3 text-3xl font-semibold">
-                    {appointments?.length || 0}
+                    {appointments.length}
                   </p>
 
                   <p className="mt-2 text-xs text-slate-400">
@@ -630,14 +687,14 @@ if (appointments.length > 0) {
                 </div>
 
                 <span className="text-sm text-slate-400">
-                  {appointments?.length || 0} total
+                  {appointments.length} total
                 </span>
 
               </div>
 
               <div className="mt-5 overflow-hidden rounded-2xl border border-slate-200 bg-white">
 
-                {appointments?.map((appointment, index) => (
+                {appointments.map((appointment, index) => (
 
                   <div
                     key={appointment.id}
@@ -653,7 +710,7 @@ if (appointments.length > 0) {
                       <div className="flex items-center gap-4">
 
                         <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-slate-100 font-semibold">
-                          {appointment.patients?.profiles?.full_name
+                          {appointment.patientInfo?.full_name
                             ?.charAt(0)
                             .toUpperCase()}
                         </div>
@@ -661,15 +718,18 @@ if (appointments.length > 0) {
                         <div>
 
                           <h3 className="font-semibold">
-                            {appointment.patients?.profiles?.full_name}
+                            {appointment.patientInfo?.full_name ||
+                              "Unknown Patient"}
                           </h3>
 
                           <p className="mt-1 text-sm text-slate-500">
-                            {appointment.appointment_type}
+                            {appointment.appointment_type ||
+                              "Consultation"}
                           </p>
 
                           <p className="mt-1 text-xs text-slate-400">
-                            {appointment.reason || "No reason provided"}
+                            {appointment.reason ||
+                              "No reason provided"}
                           </p>
 
                         </div>
@@ -702,7 +762,7 @@ if (appointments.length > 0) {
 
                 ))}
 
-                {!appointments?.length && (
+                {!appointments.length && (
                   <div className="p-10 text-center">
 
                     <p className="font-medium">
