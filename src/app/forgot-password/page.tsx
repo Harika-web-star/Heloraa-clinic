@@ -1,12 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
 export default function ForgotPasswordPage() {
   const router = useRouter();
-  const supabase = useMemo(() => createClient(), []);
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -14,6 +13,7 @@ export default function ForgotPasswordPage() {
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const supabase = createClient();
     setLoading(true);
     setError("");
     setSuccess("");
