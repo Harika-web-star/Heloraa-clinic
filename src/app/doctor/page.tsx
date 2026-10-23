@@ -167,7 +167,7 @@ export default async function DoctorPage() {
   // =====================================================
 
   return (
-    <main className="min-h-screen bg-[#F8FAFC] text-[#0A0D14]">
+    <main className="page-shell min-h-screen bg-[#F8FAFC] text-[#0A0D14]">
 
       <div className="flex min-h-screen">
 

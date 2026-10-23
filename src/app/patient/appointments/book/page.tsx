@@ -153,7 +153,7 @@ export default function BookAppointmentPage() {
     .split("T")[0];
 
   return (
-    <main className="min-h-screen bg-[#F8FAFC] px-6 py-8 md:px-10">
+    <main className="page-shell min-h-screen bg-[#F8FAFC] px-6 py-8 md:px-10">
       <div className="mx-auto max-w-3xl">
 
         {/* ------------------------------------------------ */}

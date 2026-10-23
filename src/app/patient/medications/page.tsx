@@ -32,7 +32,7 @@ export default async function MedicationsPage() {
     .eq("active", true);
 
   return (
-    <main className="min-h-screen bg-[#F8FAFC] text-[#0A0D14]">
+    <main className="page-shell min-h-screen bg-[#F8FAFC] text-[#0A0D14]">
       <div className="flex min-h-screen">
 
         <aside className="hidden w-64 shrink-0 border-r border-slate-200 bg-white lg:flex lg:flex-col">

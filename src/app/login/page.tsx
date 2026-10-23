@@ -87,7 +87,7 @@ export default function LoginPage() {
   };
 
   return (
-    <main className="min-h-screen bg-[#F8FAFC] px-4 py-10">
+    <main className="page-shell min-h-screen bg-[#F8FAFC] px-4 py-10">
       <div className="flex min-h-[calc(100vh-5rem)] items-center justify-center">
         <div className="grid w-full max-w-5xl overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-xl lg:grid-cols-2">
 
@@ -211,6 +211,16 @@ export default function LoginPage() {
                     required
                     className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-[#0A0D14] focus:ring-2 focus:ring-slate-100"
                   />
+                </div>
+
+                <div className="-mt-2 text-right">
+                  <button
+                    type="button"
+                    onClick={() => router.push("/forgot-password")}
+                    className="text-sm font-medium text-slate-600 hover:text-slate-900 hover:underline"
+                  >
+                    Forgot password?
+                  </button>
                 </div>
 
                 {/* ERROR */}

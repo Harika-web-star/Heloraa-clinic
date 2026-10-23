@@ -20,7 +20,7 @@ export default async function PatientNotificationsPage() {
     });
 
   return (
-    <main className="min-h-screen bg-[#F8FAFC] p-8">
+    <main className="page-shell min-h-screen bg-[#F8FAFC] p-8">
       <div className="mx-auto max-w-3xl space-y-6">
 
         {/* Header */}

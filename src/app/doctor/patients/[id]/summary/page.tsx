@@ -104,7 +104,7 @@ export default function PatientSummaryPage({
 
   if (pageLoading) {
     return (
-      <main className="min-h-screen bg-[#F8FAFC] p-8">
+      <main className="page-shell min-h-screen bg-[#F8FAFC] p-8">
         <div className="mx-auto max-w-4xl">
           <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
             <p className="text-sm text-slate-500">

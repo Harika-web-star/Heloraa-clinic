@@ -97,7 +97,7 @@ export default function RiskPage({ params }: RiskPageProps) {
 
   if (pageLoading) {
     return (
-      <main className="min-h-screen bg-[#F8FAFC] p-8">
+      <main className="page-shell min-h-screen bg-[#F8FAFC] p-8">
         <p className="text-sm text-slate-500">
           Loading patient...
         </p>

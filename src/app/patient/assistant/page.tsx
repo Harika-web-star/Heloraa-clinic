@@ -83,7 +83,7 @@ export default function AssistantPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 p-6">
+    <main className="page-shell min-h-screen bg-slate-50 p-6">
       <div className="mx-auto flex min-h-[calc(100vh-3rem)] max-w-5xl flex-col">
 
         {/* Header */}

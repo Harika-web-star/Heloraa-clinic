@@ -134,7 +134,7 @@ export default async function PatientAppointmentsPage() {
 
   if (!user) {
     return (
-      <main className="min-h-screen bg-[#F8FAFC] flex items-center justify-center px-6">
+      <main className="page-shell min-h-screen bg-[#F8FAFC] flex items-center justify-center px-6">
         <div className="text-center">
           <h1 className="text-xl font-semibold text-[#0A0D14]">
             Please log in
